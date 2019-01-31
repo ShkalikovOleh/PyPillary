@@ -1,5 +1,5 @@
 class GeoPoint:    
-    def __init__(longitude,latitude):
+    def __init__(self, longitude,latitude):
         self._longitude = longitude
         self._latitude = latitude
 
@@ -29,61 +29,61 @@ class Image:
         self._date = date
         self._ca = ca
         self._cameraMake = cameraMake
-        self._cameraModel = camera_model
+        self._cameraModel = cameraModel
         self._isPanoram = isPanoram
         self._sequenceKey = sequenceKey
         self._userKey = userKey
         self._username = username        
 
 
-    def getFilename():
+    def getFilename(self):
         return self._key + ".jpg"
 
     @property
-    def geoPoint():
+    def geoPoint(self):
         return self._geoPoint
 
 
     @property
-    def key():
-        return self.key
+    def key(self):
+        return self._key
 
 
     @property
-    def date():
+    def date(self):
         return self._date
 
 
     @property
-    def ca():
+    def ca(self):
         return self._ca
 
 
     @property
-    def cameraMake():
+    def cameraMake(self):
         return self._cameraMake
 
         
     @property
-    def cameraMake():
+    def cameraMake(self):
         return self._cameraModel
 
 
     @property
-    def isPanoram():
+    def isPanoram(self):
         return self._isPanoram
 
         
     @property
-    def sequenceKey():
+    def sequenceKey(self):
         return self._sequenceKey
 
         
     @property
-    def userKey():
+    def userKey(self):
         return self._userKey
 
 
     @property
-    def username():
+    def username(self):
         return self._username
