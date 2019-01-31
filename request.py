@@ -1,6 +1,6 @@
 import model
 import requests
-import time
+from dateutil.parser import parse
 
 sequencePrefix = "sequences"
 andPart = "&"
@@ -39,19 +39,17 @@ class APIRequest:
 
 
 class ImageRequest(APIRequest):    
-    _imagePrefix = "images"
-    _cdnPrefix = "https://d1cuyjsrcm0gby.cloudfront.net/"
-    _imageResolutions = {320: "/thumb-320.jpg",
-                    640: "/thumb-640.jpg",
-                    1024: "/thumb-1024.jpg",
-                    2048: "/thumb-2048.jpg}"}
-
+    _imagePrefix = "images"    
 
     def search(self):
         self._requestString += (self._apiPrefix + self._imagePrefix + answerPart)
         isr = ImageSearchRequest(self._clientId, self._clientSecret)
         isr._requestString = self._requestString
         return isr
+
+
+    def download(self, image, resolution, dirPath):        
+        return ImageDownloadRequest(self._clientId, self._clientSecret, image, resolution, dirPath)
 
 
 class ImageSearchRequest(APIRequest):
@@ -69,7 +67,55 @@ class ImageSearchRequest(APIRequest):
         '''
         self.checkAnd()
         self._requestString += ("start_time=" + datetime.isoformat())
+        return self    
+
+
+    def addEndTime(self, datetime):
+        '''
+        param datetime is datatime type object
+        '''
+        self.checkAnd()
+        self._requestString += ("end_time=" + datetime.isoformat())
         return self
+
+
+    def get(self):
+        super().get()
+        images = []
+        for feature in self._response.json()['features']:
+            properties = feature['properties']
+            geometry = feature['geometry']
+
+            geoPoint = model.GeoPoint(geometry['coordinates'][0], geometry['coordinates'][1])
+            image = model.Image(geoPoint, key = properties['key'], 
+                date = parse(properties['captured_at']), ca = properties['ca'],
+                cameraMake = properties['camera_make'], cameraModel = properties['camera_model'],
+                sequenceKey = properties['sequence_key'], isPanoram = properties['pano'],
+                userKey = properties['user_key'], username = properties['username'])
+            
+            images.append(image)
+        return images
+
+
+class ImageDownloadRequest(APIRequest):
+    _cdnPrefix = "https://d1cuyjsrcm0gby.cloudfront.net/"
+    _imageResolutions = {320: "/thumb-320.jpg",
+                    640: "/thumb-640.jpg",
+                    1024: "/thumb-1024.jpg",
+                    2048: "/thumb-2048.jpg"}
+
+    def __init__(self, clientId, clientSecret, image, resolution, dirPath):
+        super().__init__(clientId, clientSecret)
+        self._requestString = self._cdnPrefix + image.key + self._imageResolutions[resolution]
+        self._resolution = resolution
+        self._dirPath = dirPath
+        self._image = image
+
+
+    def get(self):
+        with open(self._dirPath + self._image.getFilename(), "wb") as file:
+            self._response = requests.get(self._requestString)
+            file.write(self._response.content)
 
 
 class APIService:
@@ -81,3 +127,9 @@ class APIService:
 
     def createImageRequest(self):
         return ImageRequest(self._clientId, self._clientSecret)
+
+    
+    def createCustomRequest(self, requestString):
+        request = APIRequest(self._clientId, self._clientSecret)
+        request._requestString = request._apiPrefix + requestString
+        return request
