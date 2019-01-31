@@ -1,6 +1,8 @@
 import model
 import requests
+from queue import Queue
 from dateutil.parser import parse
+from threading import Thread
 
 sequencePrefix = "sequences"
 andPart = "&"
@@ -48,8 +50,8 @@ class ImageRequest(APIRequest):
         return isr
 
 
-    def download(self, image, resolution, dirPath):        
-        return ImageDownloadRequest(self._clientId, self._clientSecret, image, resolution, dirPath)
+    def download(self, image, resolution, dirPath, threadCount = 1):        
+        return ImageDownloadRequest(self._clientId, self._clientSecret, image, resolution, dirPath, threadCount)
 
 
 class ImageSearchRequest(APIRequest):
@@ -104,18 +106,35 @@ class ImageDownloadRequest(APIRequest):
                     1024: "/thumb-1024.jpg",
                     2048: "/thumb-2048.jpg"}
 
-    def __init__(self, clientId, clientSecret, image, resolution, dirPath):
-        super().__init__(clientId, clientSecret)
-        self._requestString = self._cdnPrefix + image.key + self._imageResolutions[resolution]
+    def __init__(self, clientId, clientSecret, images, resolution, dirPath, threadCount):
+        super().__init__(clientId, clientSecret)        
         self._resolution = resolution
+        self._threadCount = threadCount
         self._dirPath = dirPath
-        self._image = image
+        self._images = images
 
 
     def get(self):
-        with open(self._dirPath + self._image.getFilename(), "wb") as file:
-            self._response = requests.get(self._requestString)
-            file.write(self._response.content)
+        def download(imagesQueue, resolution, dirPath):
+            while not imagesQueue.empty():
+                image = imagesQueue.get()
+                with open(dirPath + image.getFilename(), "wb") as file:
+                    response = requests.get(ImageDownloadRequest._cdnPrefix + 
+                        image.key + ImageDownloadRequest._imageResolutions[resolution])
+                    file.write(response.content)            
+
+        queue = Queue()
+        if isinstance(self._images, model.Image):
+            queue.put(self._images)
+            download(queue, self._resolution, self._dirPath)
+        elif isinstance(self._images, list):            
+            for img in self._images:
+                queue.put(img)
+            threads = []
+            for i in range(self._threadCount):
+                thread = Thread(target = download, args=(queue, self._resolution, self._dirPath))
+                thread.start()                
+            
 
 
 class APIService:

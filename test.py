@@ -9,4 +9,4 @@ geo2 = model.GeoPoint(30.456461388888888,50.458696388888884)
 img = service.createImageRequest().search().addBbox(geo1, geo2).get()
 print(len(img))
 
-service.createImageRequest().download(img[0], 640, "").get()
+service.createImageRequest().download(img, 640, "imgs/", 15).get()
