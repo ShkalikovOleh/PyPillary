@@ -63,6 +63,30 @@ class ImageSearchRequest(APIRequest):
         return self
 
 
+    def addCloseTo(self, geoPoint):
+        self.checkAnd()
+        self._requestString += ("closeto=" + str(geoPoint.longitude) + comaPart + str(geoPoint.latitude))
+        return self
+
+
+    def addLookAt(self, geoPoint):
+        self.checkAnd()
+        self._requestString += ("lookat=" + str(geoPoint.longitude) + comaPart + str(geoPoint.latitude))
+        return self
+
+
+    def addPano(self, isPanoram):
+        self.checkAnd()
+        self._requestString += ("pano=" + str(isPanoram).lower())
+        return self
+
+
+    def addRadius(self, radius):
+        self.checkAnd()
+        self._requestString += ("radius=" + str(radius))
+        return self
+
+
     def addStartTime(self, datetime):
         '''
         param datetime is datatime type object
@@ -78,6 +102,48 @@ class ImageSearchRequest(APIRequest):
         '''
         self.checkAnd()
         self._requestString += ("end_time=" + datetime.isoformat())
+        return self
+
+
+    def addProjectKeys(self, projectKeysList):
+        self.checkAnd()
+        self._requestString += "project_keys="
+        for key in projectKeysList:
+            self._requestString += (key + comaPart)
+        self._requestString = self._requestString[:-1]
+        return self
+
+
+    def addProjectKeys(self, sequenceKeysList):
+        self.checkAnd()
+        self._requestString += "sequence_keys="
+        for key in sequenceKeysList:
+            self._requestString += (key + comaPart)
+        self._requestString = self._requestString[:-1]
+        return self
+
+
+    def addUserkeys(self, userkeysList):
+        self.checkAnd()
+        self._requestString += "userkeys="
+        for key in userkeysList:
+            self._requestString += (key + comaPart)
+        self._requestString = self._requestString[:-1]
+        return self
+
+
+    def addUsenames(self, usernamesList):
+        self.checkAnd()
+        self._requestString += "usernames="
+        for name in usernamesList:
+            self._requestString += (name + comaPart)
+        self._requestString = self._requestString[:-1]
+        return self
+
+
+    def addPerPage(self, countPerPage):
+        self.checkAnd()
+        self._requestString += ("per_page=" + str(countPerPage))
         return self
 
 
