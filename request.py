@@ -3,6 +3,7 @@ import requests
 from queue import Queue
 from dateutil.parser import parse
 from threading import Thread
+import json
 
 sequencePrefix = "sequences"
 andPart = "&"
@@ -38,8 +39,13 @@ class APIRequest:
             self.checkAnd()
         else:
             self._requestString += answerPart
-        self._requestString += ("client_id=" + self._clientId)
-        self._response = requests.get(self._requestString)
+        self._requestString += ("client_id=" + self._clientId)        
+        response = requests.get(self._requestString)
+        self._response = []
+        self._response.append(response.json())        
+        while 'next' in response.links:
+            response = requests.get(response.links['next']['url'])
+            self._response.append(response.json())
         return self._response
 
 
@@ -52,9 +58,10 @@ class ImageRequest(APIRequest):
         return self
 
 
-    def get(self):        
+    def get(self):      
         super().get()
-        return ImageRequest.parseImageJson(self._response.json())
+        self._response = ImageRequest.parseImageJson(self._response[0])
+        return self._response
 
 
     @staticmethod
@@ -170,16 +177,20 @@ class ImageSearchRequest(APIRequest):
         return self
 
     
-    def parseSearchResponse(self):
+    def parseSearchResponse(self, json):
         images = []
-        for feature in self._response.json()['features']:
+        for feature in json['features']:
             images.append(ImageRequest.parseImageJson(feature))
         return images
 
 
     def get(self):
-        super().get()       
-        return self.parseSearchResponse()
+        super().get()
+        images = []
+        for response in self._response:
+            images.extend(self.parseSearchResponse(response))
+        self._response = images
+        return self._response
 
 
 class ImageDownloadRequest(APIRequest):
@@ -199,9 +210,10 @@ class ImageDownloadRequest(APIRequest):
 
     def get(self):
         self._requestString += (self._image.key + ImageDownloadRequest._imageResolutions[self._resolution])
-        self._response = requests.get(self._requestString)
+        response = requests.get(self._requestString)
+        self._response = response.status_code
         with open(self._dirPath + self._image.getFilename(), "wb") as file:
-            file.write(self._response.content)
+            file.write(response.content)
 
 
 class APIService:
