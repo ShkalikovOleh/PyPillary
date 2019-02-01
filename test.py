@@ -10,5 +10,5 @@ imgsReq = service.createImageSearchRequest().addCloseTo(geo2). \
 imgs = imgsReq.get()
 img = service.createImageRequest(imgs[0].key).get()
 
-requests = service.createDownloadImagesRequests(imgs[100:200], 320, "imgs/")
-service.multithreadingGetRequests(requests, 10)
+#requests = service.createDownloadImagesRequests(imgs[100:200], 320, "imgs/")
+#service.multithreadingGetRequests(requests, 10)

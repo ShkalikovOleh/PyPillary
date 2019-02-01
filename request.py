@@ -70,9 +70,9 @@ class ImageRequest(APIRequest):
         geometry = featureJson['geometry']
 
         geoPoint = model.GeoPoint(geometry['coordinates'][0], geometry['coordinates'][1])
-        image = model.Image(geoPoint, key = properties['key'], 
-                date = parse(properties['captured_at']), ca = properties['ca'],
-                cameraMake = properties['camera_make'], cameraModel = properties['camera_model'],
+        imageProp = model.ImageProperty(properties['key'], properties['ca'], geoPoint)
+        image = model.Image(imageProperty = imageProp, captureDate = parse(properties['captured_at']),
+                cameraMake = properties['camera_make'], cameraModel = properties['camera_model'], 
                 sequenceKey = properties['sequence_key'], isPanoram = properties['pano'],
                 userKey = properties['user_key'], username = properties['username'])
         return image
@@ -87,21 +87,19 @@ class ImageSearchRequest(APIRequest):
 
     def addBbox(self, geoPointMin, geoPointMax):
         self.checkAnd()
-        self._requestString += ("bbox=" + str(geoPointMin.longitude) + comaPart + 
-            str(geoPointMin.latitude) + comaPart + str(geoPointMax.longitude) + 
-            comaPart + str(geoPointMax.latitude))
+        self._requestString += ("bbox=" + str(geoPointMin) + comaPart + str(geoPointMax))
         return self
 
 
     def addCloseTo(self, geoPoint):
         self.checkAnd()
-        self._requestString += ("closeto=" + str(geoPoint.longitude) + comaPart + str(geoPoint.latitude))
+        self._requestString += ("closeto=" + str(geoPoint))
         return self
 
 
     def addLookAt(self, geoPoint):
         self.checkAnd()
-        self._requestString += ("lookat=" + str(geoPoint.longitude) + comaPart + str(geoPoint.latitude))
+        self._requestString += ("lookat=" + str(geoPoint))
         return self
 
 
