@@ -24,11 +24,9 @@ class GeoPoint:
 
 
 class ImageObject:
-    def __init__(self, key, captureDate, cameraMake, isPanoram, userKey, username):
+    def __init__(self, key, captureDate, userKey, username):
         self._key = key
-        self._captureDate = captureDate
-        self._cameraMake = cameraMake
-        self._isPanoram = isPanoram
+        self._captureDate = captureDate        
         self._userKey = userKey
         self._username = username
 
@@ -40,17 +38,7 @@ class ImageObject:
 
     @property
     def captureDate(self):
-        return self._date
-
-
-    @property
-    def cameraMake(self):
-        return self._cameraMake
-
-
-    @property
-    def isPanoram(self):
-        return self._isPanoram
+        return self._date    
 
     
     @property
@@ -89,8 +77,10 @@ class Image(ImageObject):
     def __init__(self, imageProperty, captureDate, 
             cameraMake, cameraModel, isPanoram, 
             sequenceKey, userKey, username):
-        super().__init__(imageProperty.key, captureDate, cameraMake, isPanoram, userKey, username)        
+        super().__init__(imageProperty.key, captureDate, userKey, username)
         self._imageProperty = imageProperty
+        self._isPanoram = isPanoram
+        self._cameraMake = cameraMake
         self._cameraModel = cameraModel        
         self._sequenceKey = sequenceKey        
 
@@ -108,10 +98,20 @@ class Image(ImageObject):
     def ca(self):
         return self._imageProperty.ca
 
-        
+
+    @property
+    def cameraMake(self):
+        return self._cameraMake
+
+
     @property
     def cameraModel(self):
         return self._cameraModel
+
+
+    @property
+    def isPanoram(self):
+        return self._isPanoram
 
 
     @property
@@ -120,14 +120,14 @@ class Image(ImageObject):
 
 
 class Sequence(ImageObject):
-    def __init__(self, key, captureDate, createdDate, imageProperties, cameraMake, isPanoram, userKey, username):
-        super().__init__(key, captureDate, cameraMake, isPanoram, userKey, username)
+    def __init__(self, key, captureDate, createdDate, imageProperties, userKey, username):
+        super().__init__(key, captureDate, userKey, username)
         self._imageProperties = imageProperties
         self._createdDate = createdDate
 
     
     @property
-    def captureDate(self):
+    def createdDate(self):
         return self._createdDate
 
 
