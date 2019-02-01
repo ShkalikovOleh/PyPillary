@@ -9,6 +9,8 @@ imgsReq = service.createImageSearchRequest().addCloseTo(geo2). \
         addPano(False).addRadius(200).addPerPage(200)
 imgs = imgsReq.get()
 img = service.createImageRequest(imgs[0].key).get()
+seq = service.createSequenceRequest(img.sequenceKey).get()
 
+print(seq.createdDate)
 #requests = service.createDownloadImagesRequests(imgs[100:200], 320, "imgs/")
 #service.multithreadingGetRequests(requests, 10)

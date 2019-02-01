@@ -4,7 +4,6 @@ from queue import Queue
 from dateutil.parser import parse
 from threading import Thread
 
-sequencePrefix = "sequences"
 andPart = "&"
 answerPart = "?"
 comaPart = ","
@@ -214,6 +213,40 @@ class ImageDownloadRequest(APIRequest):
             file.write(response.content)
 
 
+class SequenceRequest(APIRequest):
+    _sequencePrefix = "sequences"
+
+    def __init__(self, clientId, clientSecret, key):
+        super().__init__(clientId, clientSecret)
+        self._requestString += (SequenceRequest._sequencePrefix + slehPart + key)
+
+
+    @staticmethod
+    def parseSequenceJson(featureJson):
+        properties = featureJson['properties']
+        geometry = featureJson['geometry']
+
+        geoPoints = []        
+        for point in geometry['coordinates']:
+            geoPoints.append(model.GeoPoint(point[0], point[1]))
+        imageProps = []
+        for i in range(len(properties['coordinateProperties']['image_keys'])):
+            imageProp = model.ImageProperty(properties['coordinateProperties']['image_keys'][i],
+                properties['coordinateProperties']['cas'][i], geoPoints[i])
+            imageProps.append(imageProp)
+        
+        sequence = model.Sequence(key = properties['key'], captureDate = parse(properties['captured_at']),
+                createdDate = properties['created_at'], imageProperties = imageProps,
+                userKey = properties['user_key'], username = properties['username'])
+        return sequence
+
+
+    def get(self):
+        super().get()
+        self._response = SequenceRequest.parseSequenceJson(self._response[0])
+        return self._response
+
+
 class APIService:
     def __init__(self, credPath):
         with open(credPath, "r") as file:
@@ -231,6 +264,10 @@ class APIService:
     
     def createImageDownloadRequest(self, image, resolution, dirPath):
         return ImageDownloadRequest(self._clientId, self._clientSecret, image, resolution, dirPath)
+
+
+    def createSequenceRequest(self, key):
+        return SequenceRequest(self._clientId, self._clientSecret, key)
 
 
     def createCustomRequest(self, requestString):
