@@ -47,6 +47,69 @@ class APIRequest:
         return self._response
 
 
+class ImageObjectSearchRequest(APIRequest):
+    
+    def addBbox(self, geoPointMin, geoPointMax):
+        self.checkAnd()
+        self._requestString += ("bbox=" + str(geoPointMin) + comaPart + str(geoPointMax))
+        return self
+    
+
+    def addStartTime(self, datetime):
+        '''
+        param datetime is datatime type object
+        '''
+        self.checkAnd()
+        self._requestString += ("start_time=" + datetime.isoformat())
+        return self    
+
+
+    def addEndTime(self, datetime):
+        '''
+        param datetime is datatime type object
+        '''
+        self.checkAnd()
+        self._requestString += ("end_time=" + datetime.isoformat())
+        return self
+
+
+    def addUserkeys(self, userkeysList):
+        self.checkAnd()
+        self._requestString += "userkeys="
+        for key in userkeysList:
+            self._requestString += (key + comaPart)
+        self._requestString = self._requestString[:-1]
+        return self
+
+
+    def addUsenames(self, usernamesList):
+        self.checkAnd()
+        self._requestString += "usernames="
+        for name in usernamesList:
+            self._requestString += (name + comaPart)
+        self._requestString = self._requestString[:-1]
+        return self
+
+
+    def addPerPage(self, countPerPage):
+        self.checkAnd()
+        self._requestString += ("per_page=" + str(countPerPage))
+        return self
+
+
+    def parseSearchResponse(self, json):
+        raise NotImplementedError()
+
+
+    def get(self):
+        super().get()
+        items = []
+        for response in self._response:
+            items.extend(self.parseSearchResponse(response))
+        self._response = items
+        return self._response
+
+
 class ImageRequest(APIRequest):    
     _imagePrefix = "images"    
 
@@ -77,19 +140,13 @@ class ImageRequest(APIRequest):
         return image
 
 
-class ImageSearchRequest(APIRequest):
-
+class ImageSearchRequest(ImageObjectSearchRequest):
+    
     def __init__(self, clientId, clientSecret):
         super().__init__(clientId, clientSecret)
-        self._requestString += ImageRequest._imagePrefix + answerPart
+        self._requestString += (ImageRequest._imagePrefix + answerPart)
 
-
-    def addBbox(self, geoPointMin, geoPointMax):
-        self.checkAnd()
-        self._requestString += ("bbox=" + str(geoPointMin) + comaPart + str(geoPointMax))
-        return self
-
-
+    
     def addCloseTo(self, geoPoint):
         self.checkAnd()
         self._requestString += ("closeto=" + str(geoPoint))
@@ -114,24 +171,6 @@ class ImageSearchRequest(APIRequest):
         return self
 
 
-    def addStartTime(self, datetime):
-        '''
-        param datetime is datatime type object
-        '''
-        self.checkAnd()
-        self._requestString += ("start_time=" + datetime.isoformat())
-        return self    
-
-
-    def addEndTime(self, datetime):
-        '''
-        param datetime is datatime type object
-        '''
-        self.checkAnd()
-        self._requestString += ("end_time=" + datetime.isoformat())
-        return self
-
-
     def addProjectKeys(self, projectKeysList):
         self.checkAnd()
         self._requestString += "project_keys="
@@ -141,36 +180,12 @@ class ImageSearchRequest(APIRequest):
         return self
 
 
-    def addProjectKeys(self, sequenceKeysList):
+    def addSequenceKeys(self, sequenceKeysList):
         self.checkAnd()
         self._requestString += "sequence_keys="
         for key in sequenceKeysList:
             self._requestString += (key + comaPart)
         self._requestString = self._requestString[:-1]
-        return self
-
-
-    def addUserkeys(self, userkeysList):
-        self.checkAnd()
-        self._requestString += "userkeys="
-        for key in userkeysList:
-            self._requestString += (key + comaPart)
-        self._requestString = self._requestString[:-1]
-        return self
-
-
-    def addUsenames(self, usernamesList):
-        self.checkAnd()
-        self._requestString += "usernames="
-        for name in usernamesList:
-            self._requestString += (name + comaPart)
-        self._requestString = self._requestString[:-1]
-        return self
-
-
-    def addPerPage(self, countPerPage):
-        self.checkAnd()
-        self._requestString += ("per_page=" + str(countPerPage))
         return self
 
     
@@ -179,15 +194,6 @@ class ImageSearchRequest(APIRequest):
         for feature in json['features']:
             images.append(ImageRequest.parseImageJson(feature))
         return images
-
-
-    def get(self):
-        super().get()
-        images = []
-        for response in self._response:
-            images.extend(self.parseSearchResponse(response))
-        self._response = images
-        return self._response
 
 
 class ImageDownloadRequest(APIRequest):
@@ -247,6 +253,26 @@ class SequenceRequest(APIRequest):
         return self._response
 
 
+class SequenceSearchRequest(ImageObjectSearchRequest):
+
+    def __init__(self, clientId, clientSecret):
+        super().__init__(clientId, clientSecret)
+        self._requestString += (SequenceRequest._sequencePrefix + answerPart)
+
+
+    def addStarred(self, isStarred):
+        self.checkAnd()
+        self._requestString += ("starred=" + str(isStarred).lower())
+        return self
+
+
+    def parseSearchResponse(self, json):
+        sequences = []
+        for feature in json['features']:
+            sequences.append(SequenceRequest.parseSequenceJson(feature))
+        return sequences
+
+
 class APIService:
     def __init__(self, credPath):
         with open(credPath, "r") as file:
@@ -269,6 +295,9 @@ class APIService:
     def createSequenceRequest(self, key):
         return SequenceRequest(self._clientId, self._clientSecret, key)
 
+
+    def createSequenceSearchRequest(self):
+        return SequenceSearchRequest(self._clientId, self._clientSecret)
 
     def createCustomRequest(self, requestString):
         request = APIRequest(self._clientId, self._clientSecret)

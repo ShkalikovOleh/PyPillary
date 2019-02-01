@@ -12,5 +12,8 @@ img = service.createImageRequest(imgs[0].key).get()
 seq = service.createSequenceRequest(img.sequenceKey).get()
 
 print(seq.createdDate)
+
+seqs = service.createSequenceSearchRequest().addBbox(geo1, geo2).get()
+print(len(seqs))
 #requests = service.createDownloadImagesRequests(imgs[100:200], 320, "imgs/")
 #service.multithreadingGetRequests(requests, 10)
