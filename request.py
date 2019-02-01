@@ -8,7 +8,7 @@ sequencePrefix = "sequences"
 andPart = "&"
 answerPart = "?"
 comaPart = ","
-
+slehPart = "/"
 
 class APIRequest:
     _apiPrefix = "https://a.mapillary.com/v3/"
@@ -16,7 +16,7 @@ class APIRequest:
     def __init__(self, clientId, clientSecret):
         self._clientId = clientId
         self._clientSecret = clientSecret
-        self._requestString = ""
+        self._requestString = APIRequest._apiPrefix
 
     @property
     def requestString(self):
@@ -34,7 +34,10 @@ class APIRequest:
 
 
     def get(self):
-        self.checkAnd()
+        if answerPart in self._requestString:
+            self.checkAnd()
+        else:
+            self._requestString += answerPart
         self._requestString += ("client_id=" + self._clientId)
         self._response = requests.get(self._requestString)
         return self._response
@@ -43,18 +46,38 @@ class APIRequest:
 class ImageRequest(APIRequest):    
     _imagePrefix = "images"    
 
-    def search(self):
-        self._requestString += (self._apiPrefix + self._imagePrefix + answerPart)
-        isr = ImageSearchRequest(self._clientId, self._clientSecret)
-        isr._requestString = self._requestString
-        return isr
+
+    def key(self, key):
+        self._requestString += (self._imagePrefix + slehPart + key)
+        return self
 
 
-    def download(self, image, resolution, dirPath):        
-        return ImageDownloadRequest(self._clientId, self._clientSecret, image, resolution, dirPath)
+    def get(self):        
+        super().get()
+        return ImageRequest.parseImageJson(self._response.json())
+
+
+    @staticmethod
+    def parseImageJson(featureJson):
+        properties = featureJson['properties']
+        geometry = featureJson['geometry']
+
+        geoPoint = model.GeoPoint(geometry['coordinates'][0], geometry['coordinates'][1])
+        image = model.Image(geoPoint, key = properties['key'], 
+                date = parse(properties['captured_at']), ca = properties['ca'],
+                cameraMake = properties['camera_make'], cameraModel = properties['camera_model'],
+                sequenceKey = properties['sequence_key'], isPanoram = properties['pano'],
+                userKey = properties['user_key'], username = properties['username'])
+        return image
 
 
 class ImageSearchRequest(APIRequest):
+
+    def __init__(self, clientId, clientSecret):
+        super().__init__(clientId, clientSecret)
+        self._requestString += ImageRequest._imagePrefix + answerPart
+
+
     def addBbox(self, geoPointMin, geoPointMax):
         self.checkAnd()
         self._requestString += ("bbox=" + str(geoPointMin.longitude) + comaPart + 
@@ -150,22 +173,12 @@ class ImageSearchRequest(APIRequest):
     def parseSearchResponse(self):
         images = []
         for feature in self._response.json()['features']:
-            properties = feature['properties']
-            geometry = feature['geometry']
-
-            geoPoint = model.GeoPoint(geometry['coordinates'][0], geometry['coordinates'][1])
-            image = model.Image(geoPoint, key = properties['key'], 
-                date = parse(properties['captured_at']), ca = properties['ca'],
-                cameraMake = properties['camera_make'], cameraModel = properties['camera_model'],
-                sequenceKey = properties['sequence_key'], isPanoram = properties['pano'],
-                userKey = properties['user_key'], username = properties['username'])
-            
-            images.append(image)
+            images.append(ImageRequest.parseImageJson(feature))
         return images
 
 
     def get(self):
-        super().get()        
+        super().get()       
         return self.parseSearchResponse()
 
 
@@ -201,7 +214,15 @@ class APIService:
     def createImageRequest(self):
         return ImageRequest(self._clientId, self._clientSecret)
 
+
+    def createImageSearchRequest(self):        
+        return ImageSearchRequest(self._clientId, self._clientSecret)        
+
     
+    def createImageDownloadRequest(self, image, resolution, dirPath):
+        return ImageDownloadRequest(self._clientId, self._clientSecret, image, resolution, dirPath)
+
+
     def createCustomRequest(self, requestString):
         request = APIRequest(self._clientId, self._clientSecret)
         request._requestString = request._apiPrefix + requestString
@@ -224,5 +245,5 @@ class APIService:
     def createDownloadImagesRequests(self, imagesList, resolution, dirPath):
         downloadRequests = []
         for image in imagesList:
-            downloadRequests.append(ImageRequest(self._clientId, self._clientSecret).download(image, resolution, dirPath))
+            downloadRequests.append(ImageDownloadRequest(self._clientId, self._clientSecret, image, resolution, dirPath))
         return downloadRequests
