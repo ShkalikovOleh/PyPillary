@@ -3,7 +3,6 @@ import requests
 from queue import Queue
 from dateutil.parser import parse
 from threading import Thread
-import json
 
 sequencePrefix = "sequences"
 andPart = "&"
@@ -52,13 +51,14 @@ class APIRequest:
 class ImageRequest(APIRequest):    
     _imagePrefix = "images"    
 
+    def __init__(self, clientId, clientSecret, key):
+        super().__init__(clientId, clientSecret)
+        self._requestString += (self._imagePrefix + slehPart + key)        
 
-    def key(self, key):
-        self._requestString += (self._imagePrefix + slehPart + key)
-        return self
 
-
-    def get(self):      
+    def get(self):
+        if self._requestString[-1] == slehPart:
+            raise Exception()
         super().get()
         self._response = ImageRequest.parseImageJson(self._response[0])
         return self._response
@@ -223,8 +223,8 @@ class APIService:
             self._clientSecret = file.readline().replace("\n", "")
 
 
-    def createImageRequest(self):
-        return ImageRequest(self._clientId, self._clientSecret)
+    def createImageRequest(self, key):
+        return ImageRequest(self._clientId, self._clientSecret, key)
 
 
     def createImageSearchRequest(self):        
@@ -253,7 +253,14 @@ class APIService:
             thread = Thread(target=getRequest, args=(queue,))
             thread.start()
 
-    
+
+    def createImagesRequests(self, imageKeys):
+        imageRequests = []
+        for imageKey in imagesKeys:
+            imageRequests.append(ImageRequest(self._clientId, self._clientSecret, key))
+        return imageRequests
+
+
     def createDownloadImagesRequests(self, imagesList, resolution, dirPath):
         downloadRequests = []
         for image in imagesList:
