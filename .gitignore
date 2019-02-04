@@ -1,3 +1,4 @@
 **/.vscode/
 clientInfo.txt
 **/__pycache__
+**/examples

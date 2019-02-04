@@ -1,4 +1,4 @@
-import model
+import pypillary.model as model
 import requests
 from queue import Queue
 from dateutil.parser import parse
@@ -320,8 +320,8 @@ class APIService:
 
     def createImagesRequests(self, imageKeys):
         imageRequests = []
-        for imageKey in imagesKeys:
-            imageRequests.append(ImageRequest(self._clientId, self._clientSecret, key))
+        for imageKey in imageKeys:
+            imageRequests.append(ImageRequest(self._clientId, self._clientSecret, imageKey))
         return imageRequests
 
 
