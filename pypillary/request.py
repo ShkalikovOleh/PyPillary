@@ -312,7 +312,7 @@ class APIService:
         
         queue = Queue()
         for request in requestsList:
-            queue.put(request)
+            queue.put(request)        
         for i in range(threadCount):
             thread = Thread(target=getRequest, args=(queue,))
             thread.start()
