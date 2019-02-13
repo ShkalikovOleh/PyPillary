@@ -61,7 +61,8 @@ class APIRequest:
         return self._response
 
 
-    def get(self):        
+    def get(self):
+        self.addClientId()
         response = requests.get(self._requestString)
         self._response = []
         self._response.append(response.json())        
@@ -140,6 +141,18 @@ class ImageRequest(APIRequest):
     def __init__(self, clientId, clientSecret, key):
         super().__init__(clientId, clientSecret)
         self._requestString += (self._imagePrefix + slehPart + key)        
+
+
+    def checkSleh(self):
+        if self._requestString[-1] == slehPart:
+            raise Exception()
+
+
+    async def executeAsync(self):
+        self.checkSleh()
+        await super().executeAsync()
+        self._response = ImageRequest.parseImageJson(self._response[0])
+        return self._response
 
 
     def get(self):
@@ -358,6 +371,8 @@ class APIService:
     def executeAsync(self, requestList):        
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
-        tasks = [loop.create_task(request.executeAsync()) for request in requestList]
-        result = loop.run_until_complete(asyncio.wait(tasks))        
-        return result
+        tasks = [loop.create_task(request.executeAsync()) for request in requestList]        
+        results = []      
+        for result in loop.run_until_complete(asyncio.wait(tasks))[0]:
+            results.append(result._result)
+        return results

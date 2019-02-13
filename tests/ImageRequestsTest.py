@@ -10,7 +10,7 @@ import pypillary.model as model
 class ImageRequestsTest(unittest.TestCase):    
 
     def setUp(self):
-        with open(currentDir + "\clientInfo.txt", "r") as file:
+        with open(currentDir + "/clientInfo.txt", "r") as file:
             self._clientId = file.readline().replace("\n", "") 
             self._clientSecret = file.readline().replace("\n", "")        
 
@@ -22,4 +22,4 @@ class ImageRequestsTest(unittest.TestCase):
         self.assertIsNotNone(img.captureDate)
 
 if __name__ == '__main__':
-    unittest.main()
+    unittest.main(exit=False)

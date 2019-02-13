@@ -38,7 +38,7 @@ class ImageObject:
 
     @property
     def captureDate(self):
-        return self._date    
+        return self._captureDate    
 
     
     @property
