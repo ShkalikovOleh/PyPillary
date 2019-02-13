@@ -1,5 +1,7 @@
 import pypillary.model as model
 import requests
+import aiohttp
+import asyncio
 from queue import Queue
 from dateutil.parser import parse
 from threading import Thread
@@ -15,7 +17,8 @@ class APIRequest:
     def __init__(self, clientId, clientSecret):
         self._clientId = clientId
         self._clientSecret = clientSecret
-        self._requestString = APIRequest._apiPrefix
+        self._requestString = APIRequest._apiPrefix        
+
 
     @property
     def requestString(self):
@@ -32,12 +35,33 @@ class APIRequest:
             self._requestString += andPart
 
 
-    def get(self):
+    def addClientId(self):
         if answerPart in self._requestString:
             self.checkAnd()
         else:
             self._requestString += answerPart
-        self._requestString += ("client_id=" + self._clientId)        
+        self._requestString += ("client_id=" + self._clientId)
+
+
+    async def requestAsync(self, session, url):
+        async with session.get(self._requestString) as response:                    
+            json = await response.json()            
+            return json, response.links
+
+
+    async def executeAsync(self):
+        self.addClientId()
+        self._response = []
+        async with aiohttp.ClientSession() as session: 
+            json, links = await self.requestAsync(session, self._requestString)
+            self._response.append(json)
+            while 'next' in links:
+                json, links = await self.requestAsync(session, links['next']['url'])
+                self._response.append(json)   
+        return self._response
+
+
+    def get(self):        
         response = requests.get(self._requestString)
         self._response = []
         self._response.append(response.json())        
@@ -330,3 +354,10 @@ class APIService:
         for image in imagesList:
             downloadRequests.append(ImageDownloadRequest(self._clientId, self._clientSecret, image, resolution, dirPath))
         return downloadRequests
+
+    def executeAsync(self, requestList):        
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        tasks = [loop.create_task(request.executeAsync()) for request in requestList]
+        result = loop.run_until_complete(asyncio.wait(tasks))        
+        return result
