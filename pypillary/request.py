@@ -5,6 +5,7 @@ import asyncio
 from queue import Queue
 from dateutil.parser import parse
 from threading import Thread
+import os
 
 andPart = "&"
 answerPart = "?"
@@ -126,6 +127,15 @@ class ImageObjectSearchRequest(APIRequest):
         raise NotImplementedError()
 
 
+    async def executeAsync(self, session):
+        super().executeAsync(session)
+        items = []
+        for response in self._response:
+            items.extend(self.parseSearchResponse(response))
+        self._response = items
+        return self._response
+
+
     def get(self):
         super().get()
         items = []
@@ -244,14 +254,24 @@ class ImageDownloadRequest(APIRequest):
         super().__init__(clientId, clientSecret)        
         self._requestString = ImageDownloadRequest._cdnPrefix
         self._resolution = resolution        
+        if not os.path.exists(dirPath):
+            os.mkdir(dirPath)
         self._dirPath = dirPath
         self._image = image
+
+
+    async def executeAsync(self, session):
+        self._requestString += (self._image.key + ImageDownloadRequest._imageResolutions[self._resolution])
+        async with session.get(self._requestString) as response:            
+            self._response = response.status
+            with open(self._dirPath + self._image.getFilename(), "wb") as file:
+                file.write(await response.read())
 
 
     def get(self):
         self._requestString += (self._image.key + ImageDownloadRequest._imageResolutions[self._resolution])
         response = requests.get(self._requestString)
-        self._response = response.status_code
+        self._response = response.status_code        
         with open(self._dirPath + self._image.getFilename(), "wb") as file:
             file.write(response.content)
 
@@ -282,6 +302,12 @@ class SequenceRequest(APIRequest):
                 createdDate = properties['created_at'], imageProperties = imageProps,
                 userKey = properties['user_key'], username = properties['username'])
         return sequence
+
+
+    async def executeAsync(self, session):
+        super().executeAsync(session)
+        self._response = SequenceRequest.parseSequenceJson(self._response[0])
+        return self._response
 
 
     def get(self):
