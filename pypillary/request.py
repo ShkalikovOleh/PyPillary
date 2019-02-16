@@ -18,7 +18,8 @@ class APIRequest:
     def __init__(self, clientId, clientSecret):
         self._clientId = clientId
         self._clientSecret = clientSecret
-        self._requestString = APIRequest._apiPrefix        
+        self._requestString = APIRequest._apiPrefix
+        self._response = []     
 
 
     @property
@@ -46,8 +47,6 @@ class APIRequest:
 
     async def executeAsync(self, session):
         self.addClientId()
-        self._response = []
-        
 
         async def requestAsync(url):            
             async with session.get(self._requestString) as response:
@@ -128,7 +127,7 @@ class ImageObjectSearchRequest(APIRequest):
 
 
     async def executeAsync(self, session):
-        super().executeAsync(session)
+        await super().executeAsync(session)
         items = []
         for response in self._response:
             items.extend(self.parseSearchResponse(response))
@@ -305,7 +304,7 @@ class SequenceRequest(APIRequest):
 
 
     async def executeAsync(self, session):
-        super().executeAsync(session)
+        await super().executeAsync(session)
         self._response = SequenceRequest.parseSequenceJson(self._response[0])
         return self._response
 
@@ -413,7 +412,7 @@ class APIService:
             delta = len(requestsList) - partSize*count
             if delta > 0:
                 for i in range(delta):
-                    parts[count-1].append(requestsList[len(requestsList)-i])
+                    parts[count-1].append(requestsList[len(requestsList)-i-1])
             return parts
         parts = separateRequests(requestsList, threadCount)
         threads = []
