@@ -21,4 +21,8 @@ class ImageDownoloadRequestsTest(unittest.TestCase):
         service.executeRequestsListAsync([request.ImageDownloadRequest(self._clientId, self._clientSecret, img ,320, currentDir + "/imgs/")])
 
 if __name__ == '__main__':
-    unittest.main(exit=False)
+    tests = unittest.main(exit=False)
+    fcount = len(tests.result.failures)
+    ecount = len(tests.result.failures)
+    if not fcount == ecount == 0:
+        raise ValueError

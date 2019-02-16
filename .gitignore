@@ -2,3 +2,5 @@
 clientInfo.txt
 **/__pycache__
 **/imgs
+.travis.yml
+requirements.txt
