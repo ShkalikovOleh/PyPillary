@@ -40,24 +40,24 @@ class APIRequest:
             self.checkAnd()
         else:
             self._requestString += answerPart
-        self._requestString += ("client_id=" + self._clientId)
+        self._requestString += ("client_id=" + self._clientId)    
 
 
-    async def requestAsync(self, session, url):
-        async with session.get(self._requestString) as response:                    
-            json = await response.json()            
-            return json, response.links
-
-
-    async def executeAsync(self):
+    async def executeAsync(self, session):
         self.addClientId()
         self._response = []
-        async with aiohttp.ClientSession() as session: 
-            json, links = await self.requestAsync(session, self._requestString)
-            self._response.append(json)
-            while 'next' in links:
-                json, links = await self.requestAsync(session, links['next']['url'])
-                self._response.append(json)   
+        
+
+        async def requestAsync(url):            
+            async with session.get(self._requestString) as response:
+                json = await response.json()            
+                return json, response.links
+        
+        json, links = await requestAsync(self._requestString)
+        self._response.append(json)
+        while 'next' in links:
+            json, links = await requestAsync(links['next']['url'])
+            self._response.append(json)   
         return self._response
 
 
@@ -148,9 +148,9 @@ class ImageRequest(APIRequest):
             raise Exception()
 
 
-    async def executeAsync(self):
+    async def executeAsync(self, session):
         self.checkSleh()
-        await super().executeAsync()
+        await super().executeAsync(session)
         self._response = ImageRequest.parseImageJson(self._response[0])
         return self._response
 
@@ -342,19 +342,6 @@ class APIService:
         return request
 
 
-    def multithreadingGetRequests(self, requestsList, threadCount):
-        def getRequest(queue):
-            while not queue.empty():
-                queue.get().get()
-        
-        queue = Queue()
-        for request in requestsList:
-            queue.put(request)        
-        for i in range(threadCount):
-            thread = Thread(target=getRequest, args=(queue,))
-            thread.start()
-
-
     def createImagesRequests(self, imageKeys):
         imageRequests = []
         for imageKey in imageKeys:
@@ -368,11 +355,44 @@ class APIService:
             downloadRequests.append(ImageDownloadRequest(self._clientId, self._clientSecret, image, resolution, dirPath))
         return downloadRequests
 
-    def executeAsync(self, requestList):        
+
+    def multithreadingGetRequests(self, requestsList, threadCount):
+        def getRequest(queue):
+            while not queue.empty():
+                queue.get().get()
+        
+        queue = Queue()
+        for request in requestsList:
+            queue.put(request)        
+        for i in range(threadCount):
+            thread = Thread(target=getRequest, args=(queue,))
+            thread.start()
+
+
+    def executeRequestsListAsync(self, requestList):        
         loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        tasks = [loop.create_task(request.executeAsync()) for request in requestList]        
-        results = []      
-        for result in loop.run_until_complete(asyncio.wait(tasks))[0]:
-            results.append(result._result)
-        return results
+        asyncio.set_event_loop(loop)        
+        async def executer():
+            async with aiohttp.ClientSession(loop=loop) as sess:
+                for req in requestList:
+                    await req.executeAsync(sess)        
+        loop.run_until_complete(executer())
+        loop.close()
+
+    
+    def multithreadingExecuteRequestsListAsync(self, requestsList, threadCount=20):
+        def separateRequests(requestsList, count):
+            partSize = int(len(requestsList) / count)
+            parts = [requestsList[i*partSize : (i+1)*partSize] for i in range(count)]
+            delta = len(requestsList) - partSize*count
+            if delta > 0:
+                for i in range(delta):
+                    parts[count-1].append(requestsList[len(requestsList)-i])
+            return parts
+        parts = separateRequests(requestsList, threadCount)
+        threads = []
+        for i in range(threadCount):            
+            thread = Thread(target=self.executeRequestsListAsync, args=(parts[i],))
+            thread.start()
+            threads.append(thread)
+        [thread.join() for thread in threads]
