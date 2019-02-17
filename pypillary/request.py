@@ -1,10 +1,9 @@
 import pypillary.model as model
+import os
 import aiohttp
 import asyncio
-from queue import Queue
 from dateutil.parser import parse
 from threading import Thread
-import os
 
 andPart = "&"
 answerPart = "?"
@@ -281,7 +280,7 @@ class ImageDownloadRequest(APIRequest):
     '''
 
     _cdnPrefix = "https://d1cuyjsrcm0gby.cloudfront.net/"
-    _imageResolutions = {320: "/thumb-320.jpg",
+    ImageResolutions = {320: "/thumb-320.jpg",
                          640: "/thumb-640.jpg",
                          1024: "/thumb-1024.jpg",
                          2048: "/thumb-2048.jpg"}
@@ -296,7 +295,7 @@ class ImageDownloadRequest(APIRequest):
         self._image = image
 
     async def execute(self, session):
-        self._requestString += (self._image.key + ImageDownloadRequest._imageResolutions[self._resolution])
+        self._requestString += (self._image.key + ImageDownloadRequest.ImageResolutions[self._resolution])
         async with session.get(self._requestString) as response:
             self._response = response.status
             with open(self._dirPath + self._image.getFilename(), "wb") as file:
@@ -354,10 +353,13 @@ class SequenceSearchRequest(ImageObjectSearchRequest):
         Метод, добавляющий к запросу поиска параметр, который позволит выбирать только 'избранные' последовательности
 
         :param: isStarred - булевая переменная
-        '''
-        self.checkAnd()
-        self._requestString += ("starred=" + str(isStarred).lower())
-        return self
+        '''        
+        if isinstance(isStarred, bool):
+            self.checkAnd()
+            self._requestString += ("starred=" + str(isStarred).lower())
+            return self
+        else:
+            raise ValueError
 
     def parseSearchResponse(self, json):
         sequences = []
@@ -377,7 +379,10 @@ class APIService:
             self._clientSecret = file.readline().replace("\n", "")
 
     def createImageRequest(self, key):
-        return ImageRequest(self._clientId, self._clientSecret, key)
+        if not isinstance(key, str):
+            raise ValueError
+        
+        return ImageRequest(self._clientId, self._clientSecret, key)        
 
     def createImageSearchRequest(self):
         return ImageSearchRequest(self._clientId, self._clientSecret)
@@ -390,24 +395,28 @@ class APIService:
         :param: resolution - размер изображения (320|640|1024|2048)
         :param: dirPath - путь до папки, в которую будут сохранены файлы изображений
         '''
-        return ImageDownloadRequest(self._clientId, self._clientSecret, image, resolution, dirPath)
+        if isinstance(image, model.Image) and (resolution in ImageDownloadRequest.ImageResolutions) \
+            and isinstance(dirPath, str):
+            return ImageDownloadRequest(self._clientId, self._clientSecret, image, resolution, dirPath)
+        else:
+            raise ValueError
 
     def createSequenceRequest(self, key):
+        if not isinstance(key):
+            raise ValueError
+
         return SequenceRequest(self._clientId, self._clientSecret, key)
 
     def createSequenceSearchRequest(self):
         return SequenceSearchRequest(self._clientId, self._clientSecret)
 
     def createCustomRequest(self, requestString):
+        if not isinstance(requestString, str):
+            raise ValueError
+        
         request = APIRequest(self._clientId, self._clientSecret)
         request._requestString += requestString
-        return request
-
-    def createImageListRequests(self, imageKeys):
-        return [ImageRequest(self._clientId, self._clientSecret, imageKey) for imageKey in imageKeys]        
-
-    def createDownloadImageListRequests(self, imagesList, resolution, dirPath):        
-        return [ImageDownloadRequest(self._clientId, self._clientSecret, image, resolution, dirPath) for image in imagesList]
+        return request        
 
     def executeRequestsList(self, requestList):
         '''
@@ -415,6 +424,9 @@ class APIService:
 
         :param: requestList - список запросов для выполнения
         '''
+        if not isinstance(requestList, list):
+            raise ValueError
+
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
 
@@ -426,23 +438,26 @@ class APIService:
         loop.run_until_complete(executer())
         loop.close()
 
-    def multithreadingExecuteRequestsList(self, requestsList, threadCount=20):
+    def multithreadingExecuteRequestsList(self, requestList, threadCount=20):
         '''
         Метод, выполняющий запросы в указаном количестве потоков
 
-        :param: requestsList - список из объектов request.APIRequest(и производных)
+        :param: requestList - список из объектов request.APIRequest(и производных)
         :param: threadCount - количество потоков(целочисленный беззнаковый параметр - натуральное число)
         '''
-        def separateRequests(requestsList, count):
-            partSize = int(len(requestsList) / count)
-            parts = [requestsList[i * partSize: (i + 1) * partSize] for i in range(count)]
-            delta = len(requestsList) - partSize * count
+        if not (isinstance(requestList, list) or isinstance(threadCount, int)):
+            raise ValueError
+        
+        def separateRequests(requestList, count):
+            partSize = int(len(requestList) / count)
+            parts = [requestList[i * partSize: (i + 1) * partSize] for i in range(count)]
+            delta = len(requestList) - partSize * count
             if delta > 0:
                 for i in range(delta):
-                    parts[count - 1].append(requestsList[len(requestsList) - i - 1])
+                    parts[count - 1].append(requestList[len(requestList) - i - 1])
             return parts
 
-        parts = separateRequests(requestsList, threadCount)
+        parts = separateRequests(requestList, threadCount)
         threads = []
         for i in range(threadCount):
             thread = Thread(target=self.executeRequestsList, args=(parts[i],))
