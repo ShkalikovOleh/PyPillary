@@ -13,9 +13,13 @@ slehPart = "/"
 
 
 class APIRequest:
+    '''
+    Базовый класс запроса к сервису Mapillary
+    Определяет общие методы по работе с запросами к разным объектам    
+    '''
     _apiPrefix = "https://a.mapillary.com/v3/"
 
-    def __init__(self, clientId, clientSecret):
+    def __init__(self, clientId, clientSecret):        
         self._clientId = clientId
         self._clientSecret = clientSecret
         self._requestString = APIRequest._apiPrefix
@@ -23,17 +27,35 @@ class APIRequest:
 
     @property
     def requestString(self):
+        '''
+        Возвращает текущую строку запроса, по которой пойдет запрос при вызове метода execute(без clientId)
+        clientId автоматически добавлятся в методе execute
+        '''
         return self._requestString
 
     @property
     def response(self):
+        '''
+        После выполнения запроса содержит ответ сервиса в виде list of json
+        '''
         return self._response
 
     def checkAnd(self):
+        '''
+        В случае необходимости добавляет & к строке requestString для возможности передачи нескольких разных параметров
+        '''
         if self._requestString[-1] != '/' and self._requestString[-1] != '&':
             self._requestString += andPart
 
     async def execute(self, session):
+        '''
+        Посылает запрос на сервис и получает ответ
+        Поддерживает pagination
+        
+        :param:session объект типа aiohttp.ClientSession, который выполняет запросы
+
+        Возвращает list of json ответа
+        '''
         if answerPart in self._requestString:
             self.checkAnd()
         else:
@@ -54,15 +76,26 @@ class APIRequest:
 
 
 class ImageObjectSearchRequest(APIRequest):
+    '''
+    Класс обобщающий создание запросов поиска к последовательностям и изображениям в стиле FluentAPI    
+    '''
 
     def addBbox(self, geoPointMin, geoPointMax):
+        '''
+        Добавляет к строке запроса параметр поиска в пределах определенного квадрата территории
+
+        :param: geoPointMin - объект типа model.GeoPoint, который указывает на минимальные координаты квадрата поиска
+        :param: geoPointMax - объект типа model.GeoPoint, который указывает на максимальныые координаты квадрата поиска
+        '''
         self.checkAnd()
         self._requestString += ("bbox=" + str(geoPointMin) + comaPart + str(geoPointMax))
         return self
 
     def addStartTime(self, datetime):
         '''
-        param datetime is datatime type object
+        Добавляет к строке запроса параметр поиска, ограничивающий снизу дату его создания
+
+        :param: datetime is datatime type object
         '''
         self.checkAnd()
         self._requestString += ("start_time=" + datetime.isoformat())
@@ -70,6 +103,8 @@ class ImageObjectSearchRequest(APIRequest):
 
     def addEndTime(self, datetime):
         '''
+        Добавляет к строке запроса параметр поиска, ограницивающий сверху дату его создания
+
         param datetime is datatime type object
         '''
         self.checkAnd()
@@ -77,6 +112,11 @@ class ImageObjectSearchRequest(APIRequest):
         return self
 
     def addUserkeys(self, userkeysList):
+        '''
+        Добавляет к строке запроса параметр поиска, позволяющий производить поиск объектов, сделанных конкретными пользователями
+
+        :param: userkeysList список строк, представляющих ключи пользователей
+        '''
         self.checkAnd()
         self._requestString += "userkeys="
         for key in userkeysList:
@@ -85,6 +125,11 @@ class ImageObjectSearchRequest(APIRequest):
         return self
 
     def addUsenames(self, usernamesList):
+        '''
+        Добавляет к строке запроса параметр поиска, позволяющий производить поиск объектов, сделанных конкретными пользователями
+
+        :param: usernamesList список строк, представляющих имена пользователей
+        '''
         self.checkAnd()
         self._requestString += "usernames="
         for name in usernamesList:
@@ -93,6 +138,11 @@ class ImageObjectSearchRequest(APIRequest):
         return self
 
     def addPerPage(self, countPerPage):
+        '''
+        Добавляет к строке запроса параметр, который показывает сколько подходящих по параметрам объктам будет передаваться на одной странице ответа
+        
+        :param: countPerPage - целочисленная переменная. Количество на одной странице ответа. По умолчанию = 200 Максимум = 1000
+        '''
         self.checkAnd()
         self._requestString += ("per_page=" + str(countPerPage))
         return self
@@ -110,18 +160,18 @@ class ImageObjectSearchRequest(APIRequest):
 
 
 class ImageRequest(APIRequest):
+    '''
+    Класс, создающий запросы к конкретным изображениям по их ключу
+    Создан для сбора метаданных о изображениях
+    '''
+
     _imagePrefix = "images"
 
     def __init__(self, clientId, clientSecret, key):
         super().__init__(clientId, clientSecret)
         self._requestString += (self._imagePrefix + slehPart + key)
 
-    def checkSleh(self):
-        if self._requestString[-1] == slehPart:
-            raise Exception()
-
-    async def execute(self, session):
-        self.checkSleh()
+    async def execute(self, session):       
         await super().execute(session)
         self._response = ImageRequest.parseImageJson(self._response[0])
         return self._response
@@ -141,32 +191,63 @@ class ImageRequest(APIRequest):
 
 
 class ImageSearchRequest(ImageObjectSearchRequest):
+    '''
+    Класс для создания запросов по поиску изображений
+    '''
 
     def __init__(self, clientId, clientSecret):
         super().__init__(clientId, clientSecret)
         self._requestString += (ImageRequest._imagePrefix + answerPart)
 
     def addCloseTo(self, geoPoint):
+        '''
+        Добавляет параметр поиска изображения вблизи определенной точки
+        Используется с addRadius(radius)
+
+        :param: geoPoint - объект типа model.GeoPoint, указывающий точку вблизи которой следует искать
+        '''
         self.checkAnd()
         self._requestString += ("closeto=" + str(geoPoint))
         return self
 
     def addLookAt(self, geoPoint):
+        '''
+        Добавляет параметр поиска по изображениям, направленных в направлении указанной точки
+        Не имеет смысла без использования addCloseTo(geoPoint) или addBbox(geoMin, geoMax)
+
+        :param: geoPoint - объект типа model.GeoPoint, указывающий точку, на которую должны быть направлены изображения из ответа
+        '''
         self.checkAnd()
         self._requestString += ("lookat=" + str(geoPoint))
         return self
 
     def addPano(self, isPanoram):
+        '''
+        Метод, добавляющий фильтр панорамных изображения
+
+        :param: isPanoram - булева переменная
+        '''
         self.checkAnd()
         self._requestString += ("pano=" + str(isPanoram).lower())
         return self
 
     def addRadius(self, radius):
+        '''
+        Метод, позволяющий выбрать изображения, которые были сделаны не более чем в определенном радиусе от точки, переданно параметром CloseTo
+        Не имеет смысла без применения addCloseTo(geoPoint)
+
+        :param: radius - неотрицательная числовая переменная
+        '''
         self.checkAnd()
         self._requestString += ("radius=" + str(radius))
         return self
 
     def addProjectKeys(self, projectKeysList):
+        '''
+        Добавляет параметр поиска по изображениям из определенных проектов
+
+        :param: projectKeysList - список строк-ключей проектов
+        '''
         self.checkAnd()
         self._requestString += "project_keys="
         for key in projectKeysList:
@@ -175,6 +256,11 @@ class ImageSearchRequest(ImageObjectSearchRequest):
         return self
 
     def addSequenceKeys(self, sequenceKeysList):
+        '''
+        Добавляет параметр поиска по изображениям из определенных последовательностей
+
+        :param: projectKeysList - список строк-ключей последовательностей
+        '''
         self.checkAnd()
         self._requestString += "sequence_keys="
         for key in sequenceKeysList:
@@ -190,6 +276,10 @@ class ImageSearchRequest(ImageObjectSearchRequest):
 
 
 class ImageDownloadRequest(APIRequest):
+    '''
+    Класс для создания запроса на загрузку и непосредственно загрузки изображения
+    '''
+
     _cdnPrefix = "https://d1cuyjsrcm0gby.cloudfront.net/"
     _imageResolutions = {320: "/thumb-320.jpg",
                          640: "/thumb-640.jpg",
@@ -214,6 +304,11 @@ class ImageDownloadRequest(APIRequest):
 
 
 class SequenceRequest(APIRequest):
+    '''
+    Класс, создающий запросы к конкретным последовательностям по их ключу
+    Создан для сбора метаданных о последовательностях
+    '''
+
     _sequencePrefix = "sequences"
 
     def __init__(self, clientId, clientSecret, key):
@@ -246,12 +341,20 @@ class SequenceRequest(APIRequest):
 
 
 class SequenceSearchRequest(ImageObjectSearchRequest):
+    '''
+    Класс для создания запросов по поиску последовательностей
+    '''
 
     def __init__(self, clientId, clientSecret):
         super().__init__(clientId, clientSecret)
         self._requestString += (SequenceRequest._sequencePrefix + answerPart)
 
     def addStarred(self, isStarred):
+        '''
+        Метод, добавляющий к запросу поиска параметр, который позволит выбирать только 'избранные' последовательности
+
+        :param: isStarred - булевая переменная
+        '''
         self.checkAnd()
         self._requestString += ("starred=" + str(isStarred).lower())
         return self
@@ -264,6 +367,10 @@ class SequenceSearchRequest(ImageObjectSearchRequest):
 
 
 class APIService:
+    '''
+    Класс для упрощения работы по созданию и выполнению запросов
+    Предпочтительный путь использования данного пакета
+    '''
     def __init__(self, credPath):
         with open(credPath, "r") as file:
             self._clientId = file.readline().replace("\n", "")
@@ -276,6 +383,13 @@ class APIService:
         return ImageSearchRequest(self._clientId, self._clientSecret)
 
     def createImageDownloadRequest(self, image, resolution, dirPath):
+        '''
+        Метод, создающий объет ImageDownloadRequest
+
+        :param: image - объект типа model.Image, изображения которого необходимо загрузить
+        :param: resolution - размер изображения (320|640|1024|2048)
+        :param: dirPath - путь до папки, в которую будут сохранены файлы изображений
+        '''
         return ImageDownloadRequest(self._clientId, self._clientSecret, image, resolution, dirPath)
 
     def createSequenceRequest(self, key):
@@ -286,23 +400,21 @@ class APIService:
 
     def createCustomRequest(self, requestString):
         request = APIRequest(self._clientId, self._clientSecret)
-        request._requestString = request._apiPrefix + requestString
+        request._requestString += requestString
         return request
 
-    def createImagesRequests(self, imageKeys):
-        imageRequests = []
-        for imageKey in imageKeys:
-            imageRequests.append(ImageRequest(self._clientId, self._clientSecret, imageKey))
-        return imageRequests
+    def createImageListRequests(self, imageKeys):
+        return [ImageRequest(self._clientId, self._clientSecret, imageKey) for imageKey in imageKeys]        
 
-    def createDownloadImagesRequests(self, imagesList, resolution, dirPath):
-        downloadRequests = []
-        for image in imagesList:
-            downloadRequests.append(
-                ImageDownloadRequest(self._clientId, self._clientSecret, image, resolution, dirPath))
-        return downloadRequests
+    def createDownloadImageListRequests(self, imagesList, resolution, dirPath):        
+        return [ImageDownloadRequest(self._clientId, self._clientSecret, image, resolution, dirPath) for image in imagesList]
 
     def executeRequestsList(self, requestList):
+        '''
+        Метод, выполняющий создание всей необходимой инфраструктры для асинхронного выполнения запросов из списка
+
+        :param: requestList - список запросов для выполнения
+        '''
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
 
@@ -315,6 +427,12 @@ class APIService:
         loop.close()
 
     def multithreadingExecuteRequestsList(self, requestsList, threadCount=20):
+        '''
+        Метод, выполняющий запросы в указаном количестве потоков
+
+        :param: requestsList - список из объектов request.APIRequest(и производных)
+        :param: threadCount - количество потоков(целочисленный беззнаковый параметр - натуральное число)
+        '''
         def separateRequests(requestsList, count):
             partSize = int(len(requestsList) / count)
             parts = [requestsList[i * partSize: (i + 1) * partSize] for i in range(count)]

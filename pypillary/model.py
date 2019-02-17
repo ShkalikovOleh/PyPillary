@@ -16,6 +16,9 @@ class GeoPoint:
 
     @property
     def coordinates(self):
+        '''
+        Метод возвращающий кортеж из долготі и широты
+        '''
         return (self._longitude, self._latitude)
 
     
@@ -24,6 +27,9 @@ class GeoPoint:
 
 
 class ImageObject:
+    '''
+    Базовый класс объекта для изображения и последовательности
+    '''
     def __init__(self, key, captureDate, userKey, username):
         self._key = key
         self._captureDate = captureDate        
