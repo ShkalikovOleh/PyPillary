@@ -4,3 +4,4 @@ clientInfo.txt
 **/imgs
 .travis.yml
 requirements.txt
+**/.idea

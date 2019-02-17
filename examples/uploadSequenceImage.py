@@ -8,7 +8,9 @@ currentDir = os.path.dirname(os.path.abspath(__file__))
 service = request.APIService(currentDir + "/clientInfo.txt")
 
 #Запросить объект последовательности по заданному ключу(создать запрос и сразу его выполнить)
-sequence = service.createSequenceRequest("_dwKx5EWQ6-TgBt7BXZRaA").get()
+seq_req = service.createSequenceRequest("_dwKx5EWQ6-TgBt7BXZRaA")
+service.executeRequestsListAsync([seq_req])
+sequence = seq_req.response 
 
 imgProps = []
 if len(sequence.imageProperties) > 1000:
