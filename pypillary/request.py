@@ -327,7 +327,7 @@ class APIService:
         parts = separateRequests(requestsList, threadCount)
         threads = []
         for i in range(threadCount):
-            thread = Thread(target=self.executeRequestsListAsync, args=(parts[i],))
+            thread = Thread(target=self.executeRequestsList, args=(parts[i],))
             thread.start()
             threads.append(thread)
         [thread.join() for thread in threads]

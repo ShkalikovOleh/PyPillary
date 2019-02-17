@@ -9,7 +9,7 @@ service = request.APIService(currentDir + "/clientInfo.txt")
 
 #Запросить объект последовательности по заданному ключу(создать запрос и сразу его выполнить)
 seq_req = service.createSequenceRequest("_dwKx5EWQ6-TgBt7BXZRaA")
-service.executeRequestsListAsync([seq_req])
+service.executeRequestsList([seq_req])
 sequence = seq_req.response 
 
 imgProps = []
@@ -21,7 +21,7 @@ else:
 #Создать запросы по получению объектов изображений, входящих в sequence
 imgs_req = [service.createImageRequest(prop.key) for prop in imgProps]
 #Выполение запросов асинхронно в 10 потоков
-service.multithreadingExecuteRequestsListAsync(imgs_req, 10)
+service.multithreadingExecuteRequestsList(imgs_req, 10)
 
 #Получение из поля response запросов объектов изображний
 imgs = [req.response for req in imgs_req]
@@ -29,4 +29,4 @@ imgs = [req.response for req in imgs_req]
 #Создание списка запросов на основе списка изображений
 requests = service.createDownloadImagesRequests(imgs, 1024, currentDir + "/imgs/")
 #Выполение запросов асинхронно в 25 потоков
-service.multithreadingExecuteRequestsListAsync(requests, 25)
+service.multithreadingExecuteRequestsList(requests, 25)
