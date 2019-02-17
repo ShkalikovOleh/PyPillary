@@ -17,7 +17,7 @@ class GeoPoint:
     @property
     def coordinates(self):
         '''
-        Метод возвращающий кортеж из долготі и широты
+        Метод возвращающий кортеж из долготы и широты
         '''
         return (self._longitude, self._latitude)
 
