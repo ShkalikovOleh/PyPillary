@@ -13,7 +13,7 @@ class TestImageRequests:
     def __init__(self):
         with open(currentDir + "/clientInfo.txt", "r") as file:
             self.clientId = file.readline().replace("\n", "") 
-            self.clientSecret = file.readline().replace("\n", "")     
+            self.clientSecret = file.readline().replace("\n", "")  
 
     def executeAsync(self, req):
         async def execute(req):
