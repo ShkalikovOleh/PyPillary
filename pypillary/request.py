@@ -287,15 +287,12 @@ class ImageDownloadRequest(APIRequest):
 
     def __init__(self, clientId, clientSecret, image, resolution, dirPath):
         super().__init__(clientId, clientSecret)
-        self._requestString = ImageDownloadRequest._cdnPrefix
         self._resolution = resolution
-        if not os.path.exists(dirPath):
-            os.mkdir(dirPath)
         self._dirPath = dirPath
-        self._image = image
+        self._image = image        
+        self._requestString = (self._cdnPrefix + self._image.key + ImageDownloadRequest.ImageResolutions[self._resolution])                
 
-    async def execute(self, session):
-        self._requestString += (self._image.key + ImageDownloadRequest.ImageResolutions[self._resolution])
+    async def execute(self, session):        
         async with session.get(self._requestString) as response:
             self._response = response.status
             with open(self._dirPath + self._image.getFilename(), "wb") as file:
@@ -397,12 +394,14 @@ class APIService:
         '''
         if isinstance(image, model.Image) and (resolution in ImageDownloadRequest.ImageResolutions) \
             and isinstance(dirPath, str):
+            if not os.path.exists(dirPath):
+                os.mkdir(dirPath)
             return ImageDownloadRequest(self._clientId, self._clientSecret, image, resolution, dirPath)
         else:
             raise ValueError
 
     def createSequenceRequest(self, key):
-        if not isinstance(key):
+        if not isinstance(key, str):
             raise ValueError
 
         return SequenceRequest(self._clientId, self._clientSecret, key)
