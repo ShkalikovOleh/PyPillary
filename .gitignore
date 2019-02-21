@@ -5,3 +5,4 @@ clientInfo.txt
 .travis.yml
 requirements.txt
 **/.idea
+*.kml
