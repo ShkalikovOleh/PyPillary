@@ -48,7 +48,7 @@ for i in range(len(reqs)):
     with open(currentDir + "/Andels" + i + "txt", "w") as file:
         for angle in angles:
             file.write(angle)
-    med = np.median(prods)
-    var = np.var(prods)
+    med = np.median(angles)
+    var = np.var(angles)
     print(med)
     print(var)
