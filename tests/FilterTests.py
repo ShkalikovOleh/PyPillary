@@ -9,10 +9,11 @@ import pypillary.request as request
 import pypillary.model as model
 import pypillary.utils as utils
 
-class TestKML:
-     def test_saveToKML(self):
+class TestFilters:
+
+    def test_isCorrect(self):
         service = request.APIService(currentDir + "/clientInfo.txt")
         seq_req = service.createSequenceRequest("_dwKx5EWQ6-TgBt7BXZRaA")
         service.executeRequestsList([seq_req])
         sequence = seq_req.response
-        utils.seqToKML(sequence, currentDir + "/test.kml")
+        utils.isCorrect(200, 60, sequence.imageProperties)
