@@ -1,6 +1,7 @@
 import pypillary.model as model
 import simplekml
 import pypillary.request as request
+import numpy as np
 
 def createImageRequestList(service, imageKeys):
     if isinstance(imageKeys, list):
@@ -18,19 +19,30 @@ def createDownloadImageRequestList(service, imagesList, resolution, dirPath):
         if len(imagesList) > 0:
             if isinstance(imagesList[0], str):
                 imagesList = [createImageFromKey(key) for key in imagesList]                    
-        return [service.createDownloadImageRequest(image, resolution, dirPath) for image in imagesList]
+        return [service.createImageDownloadRequest(image, resolution, dirPath) for image in imagesList]
     else:
         raise ValueError
 
-def addImagePropertyToKML(imageProperty, resolution, kmlDoc):    
+def isCorrect(varMaxLimit, medianMinLimit, imageProperties):
+    cas = [prop.ca for prop in imageProperties]
+    var = np.var(cas)
+    med = np.median(cas)
+    mean = np.mean(cas)
+    if varMaxLimit > var or medianMinLimit >= med:
+        return False
+    return True
+
+def addImagePropertyToKML(imageProperty, kmlDoc):    
     point = kmlDoc.newpoint()    
     point.coords = [(imageProperty.geoPoint.longitude, imageProperty.geoPoint.latitude)]
-    point.description = '<img src=' + '"' + request.ImageDownloadRequest._cdnPrefix + \
-                imageProperty.key + request.ImageDownloadRequest.ImageResolutions[resolution] + '"' + ' alt=picture width=' + '"' + str(resolution) + '"' + '/>'
+    point.name = imageProperty.key
+    point.description = '<div><img src=' + '"' + request.ImageDownloadRequest._cdnPrefix + \
+                imageProperty.key + request.ImageDownloadRequest.ImageResolutions[320] + \
+                '" alt=picture/><p>Camera Angel: ' + str(imageProperty.ca) + '</p></div>'
     return kmlDoc
 
-def seqToKML(sequence, resolution, path):
+def seqToKML(sequence, path):
     kml = simplekml.Kml()    
     for imageProperty in sequence.imageProperties:
-        kml = addImagePropertyToKML(imageProperty, resolution, kml)
+        kml = addImagePropertyToKML(imageProperty, kml)
     kml.save(path)
