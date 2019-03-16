@@ -1,7 +1,6 @@
 import pypillary.model as model
 import simplekml
 import pypillary.request as request
-import numpy as np
 
 def createImageRequestList(service, imageKeys):
     if isinstance(imageKeys, list):
@@ -22,15 +21,6 @@ def createDownloadImageRequestList(service, imagesList, resolution, dirPath):
         return [service.createImageDownloadRequest(image, resolution, dirPath) for image in imagesList]
     else:
         raise ValueError
-
-def isCorrect(varMaxLimit, medianMinLimit, imageProperties):
-    cas = [prop.ca for prop in imageProperties]
-    var = np.var(cas)
-    med = np.median(cas)
-    mean = np.mean(cas)
-    if varMaxLimit > var or medianMinLimit >= med:
-        return False
-    return True
 
 def addImagePropertyToKML(imageProperty, kmlDoc):    
     point = kmlDoc.newpoint()    
