@@ -12,6 +12,9 @@ setup(
     description="A python package for Mapillary API",
     install_requires=[
         'aiohttp',
-        'python-dateutil'
+        'python-dateutil',
+        'Shapely',
+        'numpy',
+        'fastkml'
     ]
 )
