@@ -1,6 +1,7 @@
 import pypillary.model as model
-import simplekml
 import pypillary.request as request
+from fastkml import kml
+from shapely.geometry import Point
 
 def createImageRequestList(service, imageKeys):
     if isinstance(imageKeys, list):
@@ -23,16 +24,20 @@ def createDownloadImageRequestList(service, imagesList, resolution, dirPath):
         raise ValueError
 
 def addImagePropertyToKML(imageProperty, kmlDoc):    
-    point = kmlDoc.newpoint()    
-    point.coords = [(imageProperty.geoPoint.longitude, imageProperty.geoPoint.latitude)]
-    point.name = imageProperty.key
-    point.description = '<div><img src=' + '"' + request.ImageDownloadRequest._cdnPrefix + \
+    placemark = kml.Placemark(name = imageProperty.key, 
+        description = '<div><img src=' + '"' + request.ImageDownloadRequest._cdnPrefix + \
                 imageProperty.key + request.ImageDownloadRequest.ImageResolutions[320] + \
-                '" alt=picture/><p>Camera Angel: ' + str(imageProperty.ca) + '</p></div>'
+                '" alt=picture/><p>Camera Angel: ' + str(imageProperty.ca) + '</p></div>')
+    placemark.geometry = Point(imageProperty.geoPoint.longitude, imageProperty.geoPoint.latitude)
+    kmlDoc.append(placemark)
     return kmlDoc
 
 def seqToKML(sequence, path):
-    kml = simplekml.Kml()    
+    Kml = kml.KML()
+    kmlDoc = kml.Document()
+    Kml.append(kmlDoc)
     for imageProperty in sequence.imageProperties:
-        kml = addImagePropertyToKML(imageProperty, kml)
-    kml.save(path)
+        kmlDoc = addImagePropertyToKML(imageProperty, kmlDoc)
+    xml = kmlDoc.to_string()
+    with open(path, 'w') as file:
+        file.write(xml)
