@@ -16,6 +16,13 @@ class AngleProcessor:
         return vecs
 
     @staticmethod
+    def generateLookingVectors(sequence, cameraGeoPoint):
+        points = np.array([[prop.geoPoint.longitude, prop.geoPoint.latitude] for prop in sequence.imageProperties])
+        cameraPoint = np.array([cameraGeoPoint.longitude, cameraGeoPoint.latitude])
+        lookingVecs = np.subtract(points, cameraPoint)
+        return lookingVecs
+
+    @staticmethod
     def angle(vecs1, vecs2):
         '''
         Calculate array of angles in rad between vectors in np arrays
@@ -24,4 +31,4 @@ class AngleProcessor:
         normVecs2 = np.linalg.norm(vecs2, axis=1)
         normProd = normVecs1 * normVecs2
         dots = np.sum(vecs1 * vecs2, axis=1)
-        return np.arccos(dots/normProd)
+        return np.arccos(dots/normProd)    

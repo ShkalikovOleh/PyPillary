@@ -4,4 +4,5 @@ clientInfo.txt
 **/imgs*
 **/.idea
 *.kml
+**.pyc
 /venv

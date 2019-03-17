@@ -36,6 +36,16 @@ class TestAngleProcessor:
             assert(vecs[i][0] == x)
             assert(vecs[i][1] == y)
 
+    def test_genarateLookingVectors(self):
+        cameraGeoPoint = model.GeoPoint(20, 30)
+        vecs = processing.AngleProcessor.generateLookingVectors(self.seq, cameraGeoPoint)
+
+        for i in range(len(self.seq.imageProperties)):
+            x = self.seq.imageProperties[i].geoPoint.longitude - cameraGeoPoint.longitude
+            y = self.seq.imageProperties[i].geoPoint.latitude - cameraGeoPoint.latitude
+            assert(x == vecs[i][0])
+            assert(y == vecs[i][1])
+
     def test_angle(self):
         cas = processing.AngleProcessor.generateCAVectors(self.seq)
         movingVecs = processing.AngleProcessor.generateMovingVectors(self.seq)
