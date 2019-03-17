@@ -2,8 +2,6 @@
 clientInfo.txt
 **/__pycache__
 **/imgs*
-Angels*
-.travis.yml
-requirements.txt
 **/.idea
 *.kml
+/venv
