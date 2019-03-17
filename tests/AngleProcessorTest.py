@@ -10,49 +10,57 @@ import pypillary.model as model
 import pypillary.processing as processing
 
 class TestAngleProcessor:
-    
-    def __init__(self):
-        imgProps = []
-        imgProps.append(model.ImageProperty("Key", 30, model.GeoPoint(30, 40)))
-        imgProps.append(model.ImageProperty("Key", 45, model.GeoPoint(31, 39)))
-        imgProps.append(model.ImageProperty("Key", 60, model.GeoPoint(29, 41)))
-        self.seq = model.Sequence("None", None, None, imgProps, None, None)
 
     def test_generateCAVectors(self):
-        vecs = processing.AngleProcessor.generateCAVectors(self.seq)
+        cas = [30, 45 , 60]
+        cas = np.radians(cas)
+        vecs = processing.AngleProcessor.generateCAVectors(cas)
 
-        for i in range(len(self.seq.imageProperties)):
-            x = np.cos(np.radians(self.seq.imageProperties[i].ca))
-            y = np.sin(np.radians(self.seq.imageProperties[i].ca))
+        for i in range(len(cas)):
+            x = np.cos(cas[i])
+            y = np.sin(cas[i])
             assert(vecs[i][0] == x)
             assert(vecs[i][1] == y)
 
     def test_generateMovingVector(self):
-        vecs = processing.AngleProcessor.generateMovingVectors(self.seq)
+        geoPoints = [model.GeoPoint(4, 3), model.GeoPoint(2, 3), model.GeoPoint(1, -1)]
+        vecs = processing.AngleProcessor.generateMovingVectors(geoPoints)
 
-        for i in range(len(self.seq.imageProperties) - 1):
-            x = self.seq.imageProperties[i+1].geoPoint.longitude - self.seq.imageProperties[i].geoPoint.longitude
-            y = self.seq.imageProperties[i+1].geoPoint.latitude - self.seq.imageProperties[i].geoPoint.latitude
+        for i in range(len(geoPoints) - 1):
+            x = geoPoints[i+1].longitude - geoPoints[i].longitude
+            y = geoPoints[i+1].latitude - geoPoints[i].latitude
             assert(vecs[i][0] == x)
             assert(vecs[i][1] == y)
 
     def test_genarateLookingVectors(self):
         cameraGeoPoint = model.GeoPoint(20, 30)
-        vecs = processing.AngleProcessor.generateLookingVectors(self.seq, cameraGeoPoint)
+        geoPoints = [model.GeoPoint(4, 3), model.GeoPoint(2, 3), model.GeoPoint(1, -1)]
+        vecs = processing.AngleProcessor.generateLookingVectors(geoPoints, cameraGeoPoint)
 
-        for i in range(len(self.seq.imageProperties)):
-            x = self.seq.imageProperties[i].geoPoint.longitude - cameraGeoPoint.longitude
-            y = self.seq.imageProperties[i].geoPoint.latitude - cameraGeoPoint.latitude
+        for i in range(len(geoPoints)):
+            x = geoPoints[i].longitude - cameraGeoPoint.longitude
+            y = geoPoints[i].latitude - cameraGeoPoint.latitude
             assert(x == vecs[i][0])
             assert(y == vecs[i][1])
 
     def test_angle(self):
-        cas = processing.AngleProcessor.generateCAVectors(self.seq)
-        movingVecs = processing.AngleProcessor.generateMovingVectors(self.seq)
+        cases = [30, 45 , 60]
+        geoPoints = [model.GeoPoint(4, 3), model.GeoPoint(2, 3), model.GeoPoint(1, -1)]
+        cas = processing.AngleProcessor.generateCAVectors(cases)
+        movingVecs = processing.AngleProcessor.generateMovingVectors(geoPoints)
         angles = processing.AngleProcessor.angle(movingVecs, cas[:len(cas)-1])
 
-        for i in range(len(angles)):            
+        for i in range(len(angles)):
             dot = cas[i][0] * movingVecs[i][0] + cas[i][1] * movingVecs[i][1]
             normMoving = np.linalg.norm(movingVecs[i])            
             angle = np.arccos(dot / normMoving)
             assert(angle == angles[i])
+
+    def test_findCameraViewCentoids(self):
+        cas = np.radians([30, 45 , 60])
+        cameraGeoPoints = [model.GeoPoint(1, 2), model.GeoPoint(-1, -4), model.GeoPoint(3,0)]
+        geoPoints = [model.GeoPoint(4, 3), model.GeoPoint(2, 3), model.GeoPoint(1, -1)]
+        result = processing.AngleProcessor.findCameraViewCentoids(cas, cameraGeoPoints, geoPoints, 0.86)
+        assert(result[0][1] == 1)
+        assert(result[1][1] == 2)
+        assert(result[2][1] == 0)
